@@ -12,6 +12,7 @@ import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.ezen.springboard.service.HomeService;
 import com.ezen.springboard.vo.NameVO;
 
 /**
@@ -27,6 +29,8 @@ import com.ezen.springboard.vo.NameVO;
  */
 @Controller
 public class HomeController {
+	@Autowired
+	private HomeService homeService;
 	
 	private static final Logger logger = LoggerFactory.getLogger(HomeController.class);
 	
@@ -127,5 +131,75 @@ public class HomeController {
 		session.setAttribute("hello", "246810");		
 		
 		return "home";
+	}
+	
+	@PostMapping("insertName.do")
+	public String insertName(NameVO nameVO) {
+		homeService.insertName(nameVO);
+		
+		return "home";
+	}
+	
+	@GetMapping("getNameList.do")
+	public String getNameList(Model model) {
+		// model에 담아서 화면으로 넘겨줄 데이터 기져오기
+		List<NameVO> nameList = homeService.getNameList();
+		// Map으로 사용할 경우, FIRST_NAME -> firstName으로 자동 변경(sql-map-config에 카멜케이스로 변경하는 설정 안해도)
+		// List<Map<String, Object>> nameList = homeService.getNameList();
+		
+		// 가져온 데이터를 model 객체에 담아서 화면에 전달
+		model.addAttribute("nameList", nameList);
+		
+		return "getNameList";
+	}
+	
+	@GetMapping("getName.do")
+//	public String getName(NameVO nameVO) {
+//		homeService.getName(nameVO);
+//		
+//		return "getName";
+//	}
+	public String getName(@RequestParam("nameNo") int nameNo, Model model) {
+		NameVO name = homeService.getName(nameNo);
+		
+		model.addAttribute("name", name);
+		
+		return "getName";
+	}
+	
+	@GetMapping("deleteName.do")
+	public String deleteName(@RequestParam("nameNo") int nameNo, Model model) {
+		// 1. nameNo에 해당되는 사용자 삭제
+		homeService.deleteName(nameNo);
+		
+		// 2. 삭제된 사용자를 제외한 사용자목록 조회
+		List<NameVO> nameList = homeService.getNameList();
+		
+		// 3. 재조회된 사용자목록을 화면으로 전달
+		model.addAttribute("nameList", nameList);
+		
+		return "getNameList";
+	}
+	
+//	@PostMapping("updateName.do")
+//	public String updateName(NameVO nameVO, Model model) {
+//		homeService.updateName(nameVO);
+//		
+//		List<NameVO> nameList = homeService.getNameList();
+//		
+//		model.addAttribute("nameList", nameList);
+//		
+//		return "getNameList";
+//	}
+	
+	@PostMapping("updateName.do")
+	public String updateName(@RequestParam Map<String, Object> paramMap) {
+		homeService.updateName(paramMap);
+		
+		// redirect:해당주소 => jsp를 찾아가지 않고 해당주소를 다시 호출
+		// redirect vs forward
+		// redirect: WAS단에서 실행되어 주소창의 url도 변경됨
+		// forward: client(브라우저)단에서 실행되어 주소창의 url이 변경되지 않음
+		return "redirect:getNameList.do";
 	}
 }
